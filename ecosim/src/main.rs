@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 use crate::config::SimulationConfig;
-use crate::ecosystem::{Ecosystem, IterationStats};
-use crate::species::{Agent, AgentType};
+use crate::ecosystem::Ecosystem;
+use crate::species::Agent;
 
 mod config;
 mod ecosystem;
@@ -41,7 +41,7 @@ impl ConfigField {
     }
 }
 
-/// Informations de tracking uniquement pour herbivores.
+/// TrackingInfo uniquement pour herbivores.
 #[derive(Clone)]
 struct TrackingInfo {
     pub agent_id: u32,
@@ -55,7 +55,6 @@ struct TrackingInfo {
 
 impl TrackingInfo {
     fn new(agent: &Agent) -> Self {
-        // Ne tracker que les herbivores
         TrackingInfo {
             agent_id: agent.id,
             born_x: agent.x,
@@ -66,14 +65,14 @@ impl TrackingInfo {
             died: None,
         }
     }
-
+    
     fn overwrite(&mut self, agent: &Agent) {
         self.x = agent.x;
         self.y = agent.y;
         self.energy = agent.energy;
         self.died = None;
     }
-
+    
     fn mark_death(&mut self, cause: &str) {
         self.died = Some(cause.to_string());
     }
@@ -82,7 +81,6 @@ impl TrackingInfo {
 /// Avance la simulation d'une itération et met à jour le tracking.
 fn advance_simulation(eco: &mut Ecosystem, track: &mut Option<TrackingInfo>) {
     eco.step();
-
     if let Some(t) = track {
         if let Some(a) = eco.herbivores.iter().find(|h| h.id == t.agent_id) {
             t.overwrite(a);
@@ -102,7 +100,6 @@ fn load_from_history(
 ) {
     *ecosystem = Some(history[idx].clone());
     *simulation_step = idx;
-
     if let Some(t) = track {
         if let Some(ref eco) = ecosystem {
             if let Some(a) = eco.herbivores.iter().find(|h| h.id == t.agent_id) {
@@ -118,8 +115,12 @@ fn load_from_history(
 async fn main() {
     let mut app_state = AppState::ConfigMenu;
     let cell_size: f32 = 10.0;
-    let grid_width: usize = 60;
-    let grid_height: usize = 60;
+    // Grille 140x65
+    let grid_width: usize = 140;
+    let grid_height: usize = 65;
+    // Offsets
+    let offset_x: f32 = 50.0;
+    let offset_y: f32 = 50.0;
 
     // Champs de configuration
     let mut fields = vec![
@@ -139,7 +140,7 @@ async fn main() {
     let mut current_index: usize = 0;
     let mut simulation_step: usize = 0;
 
-    // Tracking uniquement pour herbivores
+    // Tracking uniquement pour herbivores.
     let mut tracking: Option<TrackingInfo> = None;
 
     loop {
@@ -147,8 +148,8 @@ async fn main() {
 
         match app_state {
             AppState::ConfigMenu => {
-                let start_x = 50.0;
-                let mut y = 50.0;
+                let start_x = offset_x;
+                let mut y = offset_y;
                 for (i, field) in fields.iter().enumerate() {
                     let color = if i == selected_field { YELLOW } else { WHITE };
                     draw_text(
@@ -211,18 +212,21 @@ async fn main() {
                 if is_mouse_button_pressed(MouseButton::Left) {
                     if let Some(ref eco) = ecosystem {
                         let (mx, my) = mouse_position();
-                        if mx < (grid_width as f32 * cell_size) && my < (grid_height as f32 * cell_size) {
-                            let cx = (mx / cell_size).floor() as usize;
-                            let cy = (my / cell_size).floor() as usize;
-                            // Si on clique sur une cellule sans herbivore, désactiver le tracking.
+                        if mx >= offset_x && my >= offset_y &&
+                           mx < offset_x + (grid_width as f32 * cell_size) &&
+                           my < offset_y + (grid_height as f32 * cell_size)
+                        {
+                            let cx = ((mx - offset_x) / cell_size).floor() as usize;
+                            let cy = ((my - offset_y) / cell_size).floor() as usize;
                             if eco.herbivores.iter().find(|a| a.x == cx && a.y == cy).is_none() {
                                 tracking = None;
                             } else {
-                                // Si un herbivore est trouvé, on démarre ou met à jour le tracking.
                                 if let Some(a) = eco.herbivores.iter().find(|a| a.x == cx && a.y == cy) {
                                     tracking = Some(TrackingInfo::new(a));
                                 }
                             }
+                        } else {
+                            tracking = None;
                         }
                     }
                 }
@@ -253,6 +257,7 @@ async fn main() {
                     }
                 }
 
+                // Dessin de la grille
                 if let Some(ref eco) = ecosystem {
                     for y in 0..eco.height {
                         for x in 0..eco.width {
@@ -274,8 +279,8 @@ async fn main() {
                                 }
                             }
                             draw_rectangle(
-                                x as f32 * cell_size,
-                                y as f32 * cell_size,
+                                offset_x + x as f32 * cell_size,
+                                offset_y + y as f32 * cell_size,
                                 cell_size - 1.0,
                                 cell_size - 1.0,
                                 color,
@@ -284,50 +289,50 @@ async fn main() {
                     }
                 }
 
+                // Calcul des moyennes
                 let avg_plants: f32 = if !history.is_empty() {
                     history.iter().map(|eco| eco.plants.len()).sum::<usize>() as f32 / history.len() as f32
-                } else {
-                    0.0
-                };
+                } else { 0.0 };
                 let avg_herbivores: f32 = if !history.is_empty() {
                     history.iter().map(|eco| eco.herbivores.len()).sum::<usize>() as f32 / history.len() as f32
-                } else {
-                    0.0
-                };
+                } else { 0.0 };
 
-                let stats_x = grid_width as f32 * cell_size + 20.0;
-                let mut text_y = 30.0;
-                let font_size = 20.0;
-                draw_text(&format!("Step: {}", simulation_step), stats_x, text_y, font_size, YELLOW);
-                text_y += 30.0;
-                if let Some(ref eco) = ecosystem {
-                    draw_text(&format!("Plants: {} (Avg: {:.1})", eco.plants.len(), avg_plants), stats_x, text_y, font_size, GREEN);
-                    text_y += 30.0;
-                    draw_text(&format!("Herbivores: {} (Avg: {:.1})", eco.herbivores.len(), avg_herbivores), stats_x, text_y, font_size, RED);
-                    text_y += 30.0;
-                }
+                // Position de base pour l'UI en bas
+                let base_x = offset_x;
+                let base_y = offset_y + (grid_height as f32 * cell_size) + 30.0;
 
-                draw_text("Left Click On A Herbivore To Track It", stats_x, text_y, font_size, WHITE);
-                text_y += 30.0;
+                // 1) Commandes (à gauche)
+                draw_text("Left/Right: Step Backward/Forward", base_x, base_y, 20.0, WHITE);
+                draw_text("Hold Space: Continuous Update", base_x, base_y + 30.0, 20.0, WHITE);
+                draw_text("Left Click On A Herbivore To Track It", base_x, base_y + 60.0, 20.0, WHITE);
+                draw_text("Esc: Quit", base_x, base_y + 90.0, 20.0, WHITE);
 
+                // 2) Statistiques (au centre)
+                let stats_x = base_x + 550.0; // Espace pour séparer les commandes
+                let stats_y = base_y;
+                draw_text(&format!("Step: {}", simulation_step), stats_x, stats_y, 20.0, YELLOW);
+                draw_text(&format!("Plants: {} (Avg: {:.1})", 
+                    if let Some(ref eco) = ecosystem { eco.plants.len() } else { 0 }, 
+                    avg_plants
+                ), 
+                stats_x, stats_y + 30.0, 20.0, GREEN);
+                draw_text(&format!("Herbivores: {} (Avg: {:.1})", 
+                    if let Some(ref eco) = ecosystem { eco.herbivores.len() } else { 0 }, 
+                    avg_herbivores
+                ), 
+                stats_x, stats_y + 60.0, 20.0, RED);
+
+                // 3) Tracking (à droite des stats)
+                let track_x = stats_x + 500.0; // Espace supplémentaire
+                let track_y = base_y;
                 if let Some(t) = &tracking {
-                    draw_text("Tracked Herbivore Info:", stats_x, text_y, font_size, YELLOW);
-                    text_y += 30.0;
-                    draw_text(&format!("Born: ({}, {})", t.born_x, t.born_y), stats_x, text_y, font_size, WHITE);
-                    text_y += 30.0;
-                    draw_text(&format!("Position: ({}, {})", t.x, t.y), stats_x, text_y, font_size, WHITE);
-                    text_y += 30.0;
-                    draw_text(&format!("Energy: {}", t.energy), stats_x, text_y, font_size, WHITE);
-                    text_y += 30.0;
+                    draw_text("Tracked Herbivore Info:", track_x, track_y, 20.0, YELLOW);
+                    draw_text(&format!("Born: ({}, {})", t.born_x, t.born_y), track_x, track_y + 30.0, 20.0, WHITE);
+                    draw_text(&format!("Position: ({}, {})", t.x, t.y), track_x, track_y + 60.0, 20.0, WHITE);
+                    draw_text(&format!("Energy: {}", t.energy), track_x, track_y + 90.0, 20.0, WHITE);
                     let died_text = t.died.as_deref().unwrap_or("Not Yet");
-                    draw_text(&format!("Died: {}", died_text), stats_x, text_y, font_size, WHITE);
-                    text_y += 30.0;
+                    draw_text(&format!("Died: {}", died_text), track_x, track_y + 120.0, 20.0, WHITE);
                 }
-
-                let inst_y = grid_height as f32 * cell_size + 30.0;
-                draw_text("Left/Right: Step Backward/Forward", 20.0, inst_y, font_size, WHITE);
-                draw_text("Hold Space: Continuous Update", 20.0, inst_y + 30.0, font_size, WHITE);
-                draw_text("Esc: Quit", 20.0, inst_y + 60.0, font_size, WHITE);
 
                 if is_key_pressed(KeyCode::Escape) {
                     break;

@@ -15,10 +15,10 @@ pub struct SimulationConfig {
 impl Default for SimulationConfig {
     fn default() -> Self {
         SimulationConfig {
-            grid_width: 60,
-            grid_height: 60,
-            initial_plants: 200,
-            initial_herbivores: 80,
+            grid_width: 140,  // Mise à jour : 140 colonnes
+            grid_height: 65,  // 65 lignes
+            initial_plants: 300,
+            initial_herbivores: 150,
             plant_growth_rate: 0.2,
             herbivore_reproduction_rate: 0.1,
             herbivore_energy_gain: 5,

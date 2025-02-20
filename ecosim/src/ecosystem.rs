@@ -89,7 +89,6 @@ impl Ecosystem {
     fn random_adjacent_aux(rng: &mut impl Rng, x: usize, y: usize, width: usize, height: usize) -> (usize, usize) {
         let dx: i32 = rng.gen_range(-1..=1);
         let dy: i32 = rng.gen_range(-1..=1);
-
         let new_x = if dx < 0 {
             x.saturating_sub(dx.abs() as usize)
         } else {
@@ -100,19 +99,16 @@ impl Ecosystem {
         } else {
             std::cmp::min(y + dy as usize, height - 1)
         };
-
         (new_x, new_y)
     }
 
     pub fn step(&mut self) -> IterationStats {
         let mut rng = rand::thread_rng();
-
         let plants_initial = self.plants.len();
         let herbivores_initial = self.herbivores.len();
 
-        // Clonage de la liste des plantes pour éviter les conflits d'emprunt
+        // Cloner la liste des plantes pour éviter les conflits d'emprunt
         let plants_copy = self.plants.clone();
-        // Annotation explicite du type
         let mut new_plants: Vec<Agent> = Vec::new();
         for plant in plants_copy {
             if rng.gen::<f32>() < self.config.plant_growth_rate {
@@ -130,20 +126,16 @@ impl Ecosystem {
         let mut eaten_count = 0;
         let mut reproduction_count = 0;
         let mut died_count = 0;
-
         let current_herbivores = std::mem::take(&mut self.herbivores);
         let mut updated_herbivores = Vec::new();
         let mut new_herbivores = Vec::new();
-
         for mut herb in current_herbivores {
             if rng.gen::<f32>() < 0.8 {
                 let (nx, ny) = Self::random_adjacent_aux(&mut rng, herb.x, herb.y, self.width, self.height);
                 herb.x = nx;
                 herb.y = ny;
             }
-
             herb.energy -= self.config.herbivore_energy_loss;
-
             let plant_indices = self.find_plants_at(herb.x, herb.y);
             if !plant_indices.is_empty() {
                 let index = plant_indices[0];
@@ -151,7 +143,6 @@ impl Ecosystem {
                 herb.energy += self.config.herbivore_energy_gain;
                 eaten_count += 1;
             }
-
             if herb.energy >= self.config.herbivore_reproduction_threshold
                 && rng.gen::<f32>() < self.config.herbivore_reproduction_rate
             {
@@ -162,8 +153,7 @@ impl Ecosystem {
                 self.next_agent_id += 1;
                 reproduction_count += 1;
             }
-
-            // Considérer l'herbivore mort si son énergie est <= 1 et fixer à 0.
+            // Considérer l'herbivore mort si son énergie <= 1 et fixer son énergie à 0.
             if herb.energy <= 1 {
                 herb.energy = 0;
                 died_count += 1;
@@ -171,13 +161,10 @@ impl Ecosystem {
                 updated_herbivores.push(herb);
             }
         }
-
         updated_herbivores.extend(new_herbivores);
         self.herbivores = updated_herbivores;
-
         let herbivores_final = self.herbivores.len();
         let plants_final = self.plants.len();
-
         let (energy_min, energy_max, energy_avg) = if !self.herbivores.is_empty() {
             let min = self.herbivores.iter().map(|h| h.energy).min().unwrap();
             let max = self.herbivores.iter().map(|h| h.energy).max().unwrap();
@@ -187,7 +174,6 @@ impl Ecosystem {
         } else {
             (None, None, None)
         };
-
         IterationStats {
             herbivores_initial,
             herbivores_final,
@@ -201,7 +187,7 @@ impl Ecosystem {
             energy_avg,
         }
     }
-
+    
     #[allow(dead_code)]
     pub fn draw(&self) {
         let mut grid = vec![vec!['.'; self.width]; self.height];
