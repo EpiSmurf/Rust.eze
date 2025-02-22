@@ -166,7 +166,7 @@ impl Ecosystem {
         // Process plant growth.
         let plants_copy = self.plants.clone();
         let mut new_plants = Vec::new();
-        for plant in plants_copy {
+        for _plant in plants_copy {
         	if rng.gen::<f32>() < self.config.plant_growth_rate {
             	let (nx, ny) = (rng.gen_range(0..self.width), rng.gen_range(0..self.height));
 
