@@ -14,6 +14,8 @@ pub struct SimulationConfig {
     pub grid_height: usize,
     /// Initial number of plants.
     pub initial_plants: usize,
+    /// Initial number of dark green plants.
+    pub initial_dark_green_plants: usize,
     /// Initial number of herbivores.
     pub initial_herbivores: usize,
     /// Initial number of carnivores.
@@ -49,6 +51,7 @@ impl Default for SimulationConfig {
             grid_width: 140,
             grid_height: 65,
             initial_plants: 100,
+            initial_dark_green_plants: 50,
             initial_herbivores: 300,
             initial_carnivores: 100,
             plant_growth_rate: 0.25,
@@ -66,13 +69,13 @@ impl Default for SimulationConfig {
     }
 }
 
-// The contents of species.rs are integrated here:
-
 #[derive(Debug, Clone, PartialEq)]
 /// Types of agents in the simulation.
 pub enum AgentType {
-    /// Represents a plant.
+    /// Represents a normal plant.
     Plant,
+    /// Represents a dark green plant.
+    DarkGreenPlant, //
     /// Represents a herbivore.
     Herbivore,
     /// Represents a carnivore.
@@ -84,8 +87,7 @@ pub enum AgentType {
 pub struct Agent {
     /// Unique identifier for the agent.
     pub id: u32,
-    /// The type of the agent (Plant, Herbivore, or Carnivore).
-    #[allow(dead_code)]
+    /// The type of the agent (Plant, DarkGreenPlant, Herbivore, or Carnivore).
     pub agent_type: AgentType,
     /// X-coordinate position on the grid.
     pub x: usize,

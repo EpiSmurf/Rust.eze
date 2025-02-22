@@ -85,6 +85,13 @@ impl Ecosystem {
             next_agent_id += 1;
         }
 
+	  for _ in 0..config.initial_dark_green_plants {
+            let x = rng.gen_range(0..width);
+            let y = rng.gen_range(0..height);
+            plants.push(Agent::new(next_agent_id, AgentType::DarkGreenPlant, x, y, 0));
+            next_agent_id += 1;
+        }
+
         // Randomly place the initial herbivores.
         for _ in 0..config.initial_herbivores {
             let x = rng.gen_range(0..width);
@@ -158,19 +165,28 @@ impl Ecosystem {
 
         // Process plant growth.
         let plants_copy = self.plants.clone();
-        let mut new_plants: Vec<Agent> = Vec::new();
+        let mut new_plants = Vec::new();
         for plant in plants_copy {
-            if rng.gen::<f32>() < self.config.plant_growth_rate {
-                let (nx, ny) = Self::random_adjacent_aux(&mut rng, plant.x, plant.y, self.width, self.height);
-                if self.find_plants_at(nx, ny).is_empty()
-                    && !new_plants.iter().any(|p: &Agent| p.x == nx && p.y == ny)
-                {
-                    new_plants.push(Agent::new(self.next_agent_id, AgentType::Plant, nx, ny, 0));
-                    self.next_agent_id += 1;
-                }
-            }
-        }
-        self.plants.extend(new_plants);
+        	if rng.gen::<f32>() < self.config.plant_growth_rate {
+            	let (nx, ny) = (rng.gen_range(0..self.width), rng.gen_range(0..self.height));
+
+            	if let Some(existing_index) = self.plants.iter().position(|p| p.x == nx && p.y == ny) {
+                		let new_type = match self.plants[existing_index].agent_type {
+                    		AgentType::Plant => AgentType::DarkGreenPlant,
+                    		AgentType::DarkGreenPlant => AgentType::Plant,
+                    		_ => continue,  // Should never happen
+                		};
+
+                		self.plants[existing_index] = Agent::new(self.plants[existing_index].id, new_type, nx, ny, 0);
+            	} else {
+                		let plant_type = if rng.gen::<f32>() < 0.5 { AgentType::Plant } else { AgentType::DarkGreenPlant };
+                		new_plants.push(Agent::new(self.next_agent_id, plant_type, nx, ny, 0));
+                		self.next_agent_id += 1;
+            	}
+        	}
+    	}
+
+    	self.plants.extend(new_plants);
 
         // Process herbivores.
         let mut herbivores_eaten_count = 0;

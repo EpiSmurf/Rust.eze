@@ -7,6 +7,8 @@
 */
 
 use macroquad::prelude::*;
+use crate::config::{AgentType};
+
 use crate::config::{SimulationConfig, Agent};  // Removed unused AgentType.
 use crate::ecosystem::Ecosystem;
 
@@ -14,6 +16,7 @@ mod config;
 mod ecosystem;
 
 const VIOLET: Color = Color::new(0.5, 0.0, 0.5, 1.0); // Color used for tracking a selected agent.
+const DARK_GREEN: Color = Color::new(0.0, 0.5, 0.0, 1.0);
 // PINK and RED are used for herbivores and carnivores, respectively.
 
 /// Configures the macroquad window.
@@ -139,7 +142,8 @@ async fn main() {
     // Define configuration fields for the simulation.
     let mut fields = vec![
         ConfigField { label: "Initial Plants".to_string(), value: 100.0, is_int: true, input: "100".to_string() },
-        ConfigField { label: "Initial Herbivores".to_string(), value: 300.0, is_int: true, input: "300".to_string() },
+        ConfigField { label: "Initial Dark Green Plants".to_string(), value: 50.0, is_int: true, input: "50".to_string() },
+	  ConfigField { label: "Initial Herbivores".to_string(), value: 300.0, is_int: true, input: "300".to_string() },
         ConfigField { label: "Initial Carnivores".to_string(), value: 100.0, is_int: true, input: "100".to_string() },
         ConfigField { label: "Plant Growth Rate".to_string(), value: 0.25, is_int: false, input: "0.25".to_string() },
         ConfigField { label: "Herbivore Reproduction Rate".to_string(), value: 0.12, is_int: false, input: "0.12".to_string() },
@@ -207,21 +211,22 @@ async fn main() {
                 if is_key_pressed(KeyCode::Enter) {
                     let config = SimulationConfig {
                         grid_width,
-                        grid_height,
-                        initial_plants: fields[0].input.parse::<usize>().unwrap_or(fields[0].value as usize),
-                        initial_herbivores: fields[1].input.parse::<usize>().unwrap_or(fields[1].value as usize),
-                        initial_carnivores: fields[2].input.parse::<usize>().unwrap_or(fields[2].value as usize),
-                        plant_growth_rate: fields[3].input.parse::<f32>().unwrap_or(fields[3].value),
-                        herbivore_reproduction_rate: fields[4].input.parse::<f32>().unwrap_or(fields[4].value),
-                        herbivore_energy_gain: fields[5].input.parse::<i32>().unwrap_or(fields[5].value as i32),
-                        herbivore_energy_loss: fields[6].input.parse::<i32>().unwrap_or(fields[6].value as i32),
-                        herbivore_initial_energy: fields[7].input.parse::<i32>().unwrap_or(fields[7].value as i32),
-                        herbivore_reproduction_threshold: fields[8].input.parse::<i32>().unwrap_or(fields[8].value as i32),
-                        carnivore_reproduction_rate: fields[9].input.parse::<f32>().unwrap_or(fields[9].value),
-                        carnivore_energy_gain: fields[10].input.parse::<i32>().unwrap_or(fields[10].value as i32),
-                        carnivore_energy_loss: fields[11].input.parse::<i32>().unwrap_or(fields[11].value as i32),
-                        carnivore_initial_energy: fields[12].input.parse::<i32>().unwrap_or(fields[12].value as i32),
-                        carnivore_reproduction_threshold: fields[13].input.parse::<i32>().unwrap_or(fields[13].value as i32),
+    				grid_height,
+    				initial_plants: fields[0].input.parse::<usize>().unwrap_or(fields[0].value as usize),
+    				initial_dark_green_plants: fields[1].input.parse::<usize>().unwrap_or(fields[1].value as usize),
+   				initial_herbivores: fields[2].input.parse::<usize>().unwrap_or(fields[2].value as usize),
+    				initial_carnivores: fields[3].input.parse::<usize>().unwrap_or(fields[3].value as usize),
+    				plant_growth_rate: fields[4].input.parse::<f32>().unwrap_or(fields[4].value),
+    				herbivore_reproduction_rate: fields[5].input.parse::<f32>().unwrap_or(fields[5].value),
+                        herbivore_energy_gain: fields[6].input.parse::<i32>().unwrap_or(fields[6].value as i32),
+                        herbivore_energy_loss: fields[7].input.parse::<i32>().unwrap_or(fields[7].value as i32),
+                        herbivore_initial_energy: fields[8].input.parse::<i32>().unwrap_or(fields[8].value as i32),
+                        herbivore_reproduction_threshold: fields[9].input.parse::<i32>().unwrap_or(fields[9].value as i32),
+                        carnivore_reproduction_rate: fields[10].input.parse::<f32>().unwrap_or(fields[10].value),
+                        carnivore_energy_gain: fields[11].input.parse::<i32>().unwrap_or(fields[11].value as i32),
+                        carnivore_energy_loss: fields[12].input.parse::<i32>().unwrap_or(fields[12].value as i32),
+                        carnivore_initial_energy: fields[13].input.parse::<i32>().unwrap_or(fields[13].value as i32),
+                        carnivore_reproduction_threshold: fields[14].input.parse::<i32>().unwrap_or(fields[14].value as i32),
                     };
                     ecosystem = Some(Ecosystem::new_custom(config));
                     history.push(ecosystem.as_ref().unwrap().clone());
@@ -303,7 +308,11 @@ async fn main() {
                                 } else if eco.herbivores.iter().any(|h| h.x == x && h.y == y) {
                                     color = PINK;
                                 } else if eco.plants.iter().any(|p| p.x == x && p.y == y) {
-                                    color = GREEN;
+                                    if eco.plants.iter().any(|p| p.x == x && p.y == y && p.agent_type == AgentType::DarkGreenPlant) {
+                        			color = DARK_GREEN;
+                    			} else {
+                        			color = GREEN;
+                    			}
                                 }
                             } else {
                                 if eco.carnivores.iter().any(|c| c.x == x && c.y == y) {
@@ -311,7 +320,11 @@ async fn main() {
                                 } else if eco.herbivores.iter().any(|h| h.x == x && h.y == y) {
                                     color = PINK;
                                 } else if eco.plants.iter().any(|p| p.x == x && p.y == y) {
-                                    color = GREEN;
+                                    if eco.plants.iter().any(|p| p.x == x && p.y == y && p.agent_type == AgentType::DarkGreenPlant) {
+                        			color = DARK_GREEN;
+		                    	} else {
+                        			color = GREEN;
+                    			}
                                 }
                             }
                             draw_rectangle(
