@@ -1,12 +1,17 @@
 /*
-    Simulation Configuration and Agent Definitions
+    Simulation Configuration and Agent
+    Definitions
 
-    This module defines the configuration parameters for the simulation (grid size, initial populations,
-    growth and energy parameters, etc.) and provides the Agent type and its associated enum.
+    This module defines the configuration
+    parameters for the simulation (grid size,
+    initial populations, growth and energy
+    parameters, etc.) and provides the Agent
+    type and its associated enum.
 */
 
 #[derive(Clone)]
-/// Configuration parameters for the simulation.
+/// Configuration parameters for the
+/// simulation.
 pub struct SimulationConfig {
     /// Width of the simulation grid.
     pub grid_width: usize,
@@ -24,28 +29,33 @@ pub struct SimulationConfig {
     pub plant_growth_rate: f32,
     /// Reproduction rate for herbivores.
     pub herbivore_reproduction_rate: f32,
-    /// Energy gained by a herbivore when consuming a plant.
+    /// Energy gained by a herbivore when
+    /// consuming a plant.
     pub herbivore_energy_gain: i32,
     /// Energy lost by a herbivore each step.
     pub herbivore_energy_loss: i32,
     /// Initial energy of herbivores.
     pub herbivore_initial_energy: i32,
-    /// Energy threshold for herbivore reproduction.
+    /// Energy threshold for herbivore
+    /// reproduction.
     pub herbivore_reproduction_threshold: i32,
     /// Reproduction rate for carnivores.
     pub carnivore_reproduction_rate: f32,
-    /// Energy gained by a carnivore when consuming a herbivore.
+    /// Energy gained by a carnivore when
+    /// consuming a herbivore.
     pub carnivore_energy_gain: i32,
     /// Energy lost by a carnivore each step.
     pub carnivore_energy_loss: i32,
     /// Initial energy of carnivores.
     pub carnivore_initial_energy: i32,
-    /// Energy threshold for carnivore reproduction.
+    /// Energy threshold for carnivore
+    /// reproduction.
     pub carnivore_reproduction_threshold: i32,
 }
 
 impl Default for SimulationConfig {
-    /// Provides a default simulation configuration.
+    /// Provides a default simulation
+    /// configuration.
     fn default() -> Self {
         SimulationConfig {
             grid_width: 140,
@@ -75,7 +85,7 @@ pub enum AgentType {
     /// Represents a normal plant.
     Plant,
     /// Represents a dark green plant.
-    DarkGreenPlant, //
+    DarkGreenPlant,
     /// Represents a herbivore.
     Herbivore,
     /// Represents a carnivore.
@@ -87,7 +97,9 @@ pub enum AgentType {
 pub struct Agent {
     /// Unique identifier for the agent.
     pub id: u32,
-    /// The type of the agent (Plant, DarkGreenPlant, Herbivore, or Carnivore).
+    /// The type of the agent (Plant,
+    /// DarkGreenPlant, Herbivore, or
+    /// Carnivore).
     pub agent_type: AgentType,
     /// X-coordinate position on the grid.
     pub x: usize,
@@ -98,8 +110,21 @@ pub struct Agent {
 }
 
 impl Agent {
-    /// Creates a new agent with the specified properties.
-    pub fn new(id: u32, agent_type: AgentType, x: usize, y: usize, energy: i32) -> Self {
-        Agent { id, agent_type, x, y, energy }
+    /// Creates a new agent with the specified
+    /// properties.
+    pub fn new(
+        id: u32,
+        agent_type: AgentType,
+        x: usize,
+        y: usize,
+        energy: i32,
+    ) -> Self {
+        Agent {
+            id,
+            agent_type,
+            x,
+            y,
+            energy,
+        }
     }
 }
