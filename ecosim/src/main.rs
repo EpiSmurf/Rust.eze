@@ -187,8 +187,9 @@ async fn main() {
                 draw_text("Amir-Alexandre BARKALLAH", start_x, y, 20.0, WHITE);
                 y += 60.0;
                 for (i, field) in fields.iter().enumerate() {
+                    let font_size = if i == selected_field { 22.5 } else { 20.0 };
                     let color = if i == selected_field {
-                        YELLOW
+                        WHITE
                     } else {
                         match field.label.as_str() {
                             "Initial Carnivores" => RED,
@@ -201,25 +202,26 @@ async fn main() {
                             _ => WHITE,
                         }
                     };
+
                     draw_text(
                         &format!("{}: {}", field.label, field.display_value()),
                         start_x,
                         y,
-                        20.0,
+                        font_size,
                         color,
                     );
                     y += 30.0;
                 }
-                y += 20.0;
-                draw_text("Up/Down: Switch Field", start_x, y, 20.0, YELLOW);
                 y += 30.0;
-                draw_text("Type Digits or '.' to Modify", start_x, y, 20.0, YELLOW);
+                draw_text("Up/Down: Switch Field", start_x, y, 20.0, WHITE);
                 y += 30.0;
-                draw_text("Backspace: Delete", start_x, y, 20.0, YELLOW);
+                draw_text("Type Digits or '.' to Change Values", start_x, y, 20.0, WHITE);
                 y += 30.0;
-                draw_text("Enter: Start Simulation", start_x, y, 20.0, YELLOW);
+                draw_text("Backspace: Delete", start_x, y, 20.0, WHITE);
                 y += 30.0;
-                draw_text("Esc: Quit", start_x, y, 20.0, YELLOW);
+                draw_text("Enter: Start Simulation", start_x, y, 20.0, WHITE);
+                y += 30.0;
+                draw_text("Esc: Quit", start_x, y, 20.0, WHITE);
                 if is_key_pressed(KeyCode::Up) && selected_field > 0 {
                     selected_field -= 1;
                 }
