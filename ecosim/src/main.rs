@@ -150,12 +150,12 @@ async fn main() {
             input: default_config.initial_omnivores.to_string(),
         },
         ConfigField {
-            label: "Water Spawn Chance".to_string(),
+            label: "Lakes Spawn Chance".to_string(),
             is_int: false,
             input: default_config.water_spawn_chance.to_string(),
         },
         ConfigField {
-            label: "Tree Spawn Chance".to_string(),
+            label: "Trees Spawn Chance".to_string(),
             is_int: false,
             input: default_config.tree_spawn_chance.to_string(),
         },
