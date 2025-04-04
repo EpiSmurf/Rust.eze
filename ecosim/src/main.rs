@@ -5,11 +5,7 @@ use crate::ecosystem::{Ecosystem, SimulationStats};
 mod config;
 mod ecosystem;
 
-const VIOLET: Color = Color::new(0.5, 0.0, 0.5, 1.0);
 const DARK_GREEN: Color = Color::new(0.0, 0.5, 0.0, 1.0);
-const ORANGE: Color = Color::new(1.0, 0.65, 0.0, 1.0);
-const BLUE: Color = Color::new(0.0, 0.0, 1.0, 1.0);
-const BROWN: Color = Color::new(0.4, 0.2, 0.0, 1.0);
 
 fn window_conf() -> Conf {
     Conf {
@@ -31,6 +27,7 @@ struct ConfigField {
     label: String,
     is_int: bool,
     input: String,
+    color: Color,
 }
 
 impl ConfigField {
@@ -52,7 +49,7 @@ struct TrackingInfo {
 
 impl TrackingInfo {
     fn new(agent: &Agent) -> Self {
-        TrackingInfo {
+        Self {
             agent_id: agent.id,
             born_x: agent.x,
             born_y: agent.y,
@@ -128,36 +125,43 @@ async fn main() {
             label: "Initial Light Plants".to_string(),
             is_int: true,
             input: default_config.initial_light_plants.to_string(),
+            color: GREEN,
         },
         ConfigField {
             label: "Initial Dark Plants".to_string(),
             is_int: true,
             input: default_config.initial_dark_plants.to_string(),
+            color: DARK_GREEN,
         },
         ConfigField {
             label: "Initial Herbivores".to_string(),
             is_int: true,
             input: default_config.initial_herbivores.to_string(),
+            color: PINK,
         },
         ConfigField {
             label: "Initial Carnivores".to_string(),
             is_int: true,
             input: default_config.initial_carnivores.to_string(),
+            color: RED,
         },
         ConfigField {
             label: "Initial Omnivores".to_string(),
             is_int: true,
             input: default_config.initial_omnivores.to_string(),
+            color: ORANGE,
         },
         ConfigField {
             label: "Lakes Spawn Chance".to_string(),
             is_int: false,
             input: default_config.water_spawn_chance.to_string(),
+            color: BLUE,
         },
         ConfigField {
             label: "Trees Spawn Chance".to_string(),
             is_int: false,
             input: default_config.tree_spawn_chance.to_string(),
+            color: BROWN,
         },
     ];
     let mut selected_field: usize = 0;
@@ -173,36 +177,16 @@ async fn main() {
             AppState::ConfigMenu => {
                 let start_x = offset_x;
                 let mut y = offset_y;
-                y += 20.0;
+                y += 30.0;
                 draw_text("Rust.eze", start_x, y, 50.0, VIOLET);
-                y += 60.0;
-                draw_text("Contributors:", start_x, y, 30.0, YELLOW);
-                y += 40.0;
-                draw_text("Guillaume DUFOUR", start_x, y, 20.0, WHITE);
-                y += 25.0;
-                draw_text("Lucas BONDARENKO", start_x, y, 20.0, WHITE);
-                y += 25.0;
-                draw_text("Philippe RASTOUL", start_x, y, 20.0, WHITE);
-                y += 25.0;
-                draw_text("Amir-Alexandre BARKALLAH", start_x, y, 20.0, WHITE);
                 y += 60.0;
                 for (i, field) in fields.iter().enumerate() {
                     let font_size = if i == selected_field { 22.5 } else { 20.0 };
                     let color = if i == selected_field {
                         WHITE
                     } else {
-                        match field.label.as_str() {
-                            "Initial Carnivores" => RED,
-                            "Initial Herbivores" => PINK,
-                            "Initial Omnivores" => ORANGE,
-                            "Initial Dark Plants" => DARK_GREEN,
-                            "Initial Light Plants" => GREEN,
-                            "Water Spawn Chance" => BLUE,
-                            "Tree Spawn Chance" => BROWN,
-                            _ => WHITE,
-                        }
+                        field.color
                     };
-
                     draw_text(
                         &format!("{}: {}", field.label, field.display_value()),
                         start_x,
@@ -253,17 +237,14 @@ async fn main() {
                         tree_spawn_chance: fields[6].input.parse::<f32>().unwrap_or(default_config.tree_spawn_chance),
                         tree_lifespan: default_config.tree_lifespan,
                         plant_growth_rate: default_config.plant_growth_rate,
-                        herbivore_reproduction_rate: default_config.herbivore_reproduction_rate,
                         herbivore_energy_gain: default_config.herbivore_energy_gain,
                         herbivore_energy_loss: default_config.herbivore_energy_loss,
                         herbivore_initial_energy: default_config.herbivore_initial_energy,
                         herbivore_reproduction_threshold: default_config.herbivore_reproduction_threshold,
-                        carnivore_reproduction_rate: default_config.carnivore_reproduction_rate,
                         carnivore_energy_gain: default_config.carnivore_energy_gain,
                         carnivore_energy_loss: default_config.carnivore_energy_loss,
                         carnivore_initial_energy: default_config.carnivore_initial_energy,
                         carnivore_reproduction_threshold: default_config.carnivore_reproduction_threshold,
-                        omnivore_reproduction_rate: default_config.omnivore_reproduction_rate,
                         omnivore_energy_gain_plants: default_config.omnivore_energy_gain_plants,
                         omnivore_energy_gain_herbivores: default_config.omnivore_energy_gain_herbivores,
                         omnivore_energy_loss: default_config.omnivore_energy_loss,
@@ -382,49 +363,60 @@ async fn main() {
                             draw_rectangle(offset_x + x as f32 * cell_size, offset_y + y as f32 * cell_size, cell_size - 1.0, cell_size - 1.0, color);
                         }
                     }
-                }
-                let avg_plants: f32 = if !history.is_empty() {
-                    history.iter().map(|eco| eco.plants.len()).sum::<usize>() as f32 / history.len() as f32
-                } else {
-                    0.0
-                };
-                let avg_herbivores: f32 = if !history.is_empty() {
-                    history.iter().map(|eco| eco.herbivores.len()).sum::<usize>() as f32 / history.len() as f32
-                } else {
-                    0.0
-                };
-                let avg_carnivores: f32 = if !history.is_empty() {
-                    history.iter().map(|eco| eco.carnivores.len()).sum::<usize>() as f32 / history.len() as f32
-                } else {
-                    0.0
-                };
-                let avg_omnivores: f32 = if !history.is_empty() {
-                    history.iter().map(|eco| eco.omnivores.len()).sum::<usize>() as f32 / history.len() as f32
-                } else {
-                    0.0
-                };
-                let base_x = offset_x;
-                let base_y = offset_y + (grid_height as f32 * cell_size) + 30.0;
-                draw_text("Left/Right: Step Backward/Forward", base_x, base_y, 20.0, WHITE);
-                draw_text("Hold Space: Continuous Update", base_x, base_y + 30.0, 20.0, WHITE);
-                draw_text("Left Click on an Animal to Track it", base_x, base_y + 60.0, 20.0, WHITE);
-                draw_text("Esc: Show Statistics", base_x, base_y + 90.0, 20.0, WHITE);
-                let stats_x = base_x + 550.0;
-                let stats_y = base_y;
-                draw_text(&format!("Step: {}", simulation_step), stats_x, stats_y, 20.0, YELLOW);
-                draw_text(&format!("Plants: {} (Avg: {:.1})", if let Some(ref eco) = ecosystem { eco.plants.len() } else { 0 }, avg_plants), stats_x, stats_y + 30.0, 20.0, GREEN);
-                draw_text(&format!("Herbivores: {} (Avg: {:.1})", if let Some(ref eco) = ecosystem { eco.herbivores.len() } else { 0 }, avg_herbivores), stats_x, stats_y + 60.0, 20.0, PINK);
-                draw_text(&format!("Carnivores: {} (Avg: {:.1})", if let Some(ref eco) = ecosystem { eco.carnivores.len() } else { 0 }, avg_carnivores), stats_x, stats_y + 90.0, 20.0, RED);
-                draw_text(&format!("Omnivores: {} (Avg: {:.1})", if let Some(ref eco) = ecosystem { eco.omnivores.len() } else { 0 }, avg_omnivores), stats_x, stats_y + 120.0, 20.0, ORANGE);
-                let track_x = stats_x + 500.0;
-                let track_y = base_y;
-                if let Some(t) = &tracking {
-                    draw_text("Tracked Animal Info:", track_x, track_y, 20.0, VIOLET);
-                    draw_text(&format!("Born: ({}, {})", t.born_x, t.born_y), track_x, track_y + 30.0, 20.0, WHITE);
-                    draw_text(&format!("Position: ({}, {})", t.x, t.y), track_x, track_y + 60.0, 20.0, WHITE);
-                    draw_text(&format!("Energy: {}", t.energy), track_x, track_y + 90.0, 20.0, WHITE);
-                    let died_text = t.died.as_deref().unwrap_or("Not Yet");
-                    draw_text(&format!("Died: {}", died_text), track_x, track_y + 120.0, 20.0, WHITE);
+                    let total_light_plants = eco.plants.iter().filter(|p| p.agent_type == AgentType::LightPlant).count();
+                    let total_dark_plants = eco.plants.iter().filter(|p| p.agent_type == AgentType::DarkPlant).count();
+                    let (avg_light_plants, avg_dark_plants) = if !history.is_empty() {
+                        let total_light_in_history: usize = history.iter().map(|e| e.plants.iter().filter(|p| p.agent_type == AgentType::LightPlant).count()).sum();
+                        let total_dark_in_history: usize = history.iter().map(|e| e.plants.iter().filter(|p| p.agent_type == AgentType::DarkPlant).count()).sum();
+                        (
+                            total_light_in_history as f32 / history.len() as f32,
+                            total_dark_in_history as f32 / history.len() as f32
+                        )
+                    } else {
+                        (0.0, 0.0)
+                    };
+                    draw_text(&format!("Iteration: {}", simulation_step), 10.0, 25.0, 30.0, YELLOW);
+                    let info_x = offset_x;
+                    let info_y = offset_y + (grid_height as f32 * cell_size) + 30.0;
+                    draw_text("Left/Right: Next/Previous Iteration", info_x, info_y, 20.0, WHITE);
+                    draw_text("Hold Space: Continuous Update", info_x, info_y + 30.0, 20.0, WHITE);
+                    draw_text("Left Click on an Animal to Track it", info_x, info_y + 60.0, 20.0, WHITE);
+                    draw_text("Esc: Show Statistics", info_x, info_y + 90.0, 20.0, WHITE);
+                    let stats_x = info_x + 550.0;
+                    let stats_y = info_y;
+                    draw_text(&format!("Light Plants: {} (Avg: {:.1})", total_light_plants, avg_light_plants), stats_x, stats_y + 0.0, 20.0, GREEN);
+                    draw_text(&format!("Dark Plants: {} (Avg: {:.1})", total_dark_plants, avg_dark_plants), stats_x, stats_y + 30.0, 20.0, DARK_GREEN);
+                    let avg_herbivores: f32 = if !history.is_empty() {
+                        history.iter().map(|eco| eco.herbivores.len()).sum::<usize>() as f32 / history.len() as f32
+                    } else {
+                        0.0
+                    };
+                    let avg_carnivores: f32 = if !history.is_empty() {
+                        history.iter().map(|eco| eco.carnivores.len()).sum::<usize>() as f32 / history.len() as f32
+                    } else {
+                        0.0
+                    };
+                    let avg_omnivores: f32 = if !history.is_empty() {
+                        history.iter().map(|eco| eco.omnivores.len()).sum::<usize>() as f32 / history.len() as f32
+                    } else {
+                        0.0
+                    };
+                    draw_text(&format!("Herbivores: {} (Avg: {:.1})", eco.herbivores.len(), avg_herbivores),
+                              stats_x, stats_y + 60.0, 20.0, PINK);
+                    draw_text(&format!("Carnivores: {} (Avg: {:.1})", eco.carnivores.len(), avg_carnivores),
+                              stats_x, stats_y + 90.0, 20.0, RED);
+                    draw_text(&format!("Omnivores: {} (Avg: {:.1})", eco.omnivores.len(), avg_omnivores),
+                              stats_x, stats_y + 120.0, 20.0, ORANGE);
+                    let track_x = stats_x + 500.0;
+                    let track_y = info_y;
+                    if let Some(t) = &tracking {
+                        draw_text("Tracked Animal Info:", track_x, track_y, 20.0, VIOLET);
+                        draw_text(&format!("Born: ({}, {})", t.born_x, t.born_y), track_x, track_y + 30.0, 20.0, WHITE);
+                        draw_text(&format!("Position: ({}, {})", t.x, t.y), track_x, track_y + 60.0, 20.0, WHITE);
+                        draw_text(&format!("Energy: {}", t.energy), track_x, track_y + 90.0, 20.0, WHITE);
+                        let died_text = t.died.as_deref().unwrap_or("Not Yet");
+                        draw_text(&format!("Died: {}", died_text), track_x, track_y + 120.0, 20.0, WHITE);
+                    }
                 }
             }
             AppState::StatsScreen => {
@@ -432,31 +424,51 @@ async fn main() {
                 let mut line = 1;
                 let line_height = 15.0;
                 line += 4;
-                draw_text(&format!("Step Count: {}", simulation_step), offset_x, offset_y + line_height * (line as f32), 25.0, YELLOW);
+                draw_text(&format!("Iteration Count: {}", simulation_step),
+                          offset_x, offset_y + line_height * (line as f32), 25.0, YELLOW);
                 line += 3;
-                draw_text("Plants", offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
+                draw_text("Light Plants", offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
                 line += 1;
-                draw_text(&format!("Births: {}   Deaths: {}", stats.plant_births, stats.plant_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
+                draw_text(&format!("Births: {}   Deaths: {}",
+                                   stats.light_plant_births, stats.light_plant_deaths),
+                          offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
+                line += 2;
+                draw_text("Dark Plants", offset_x, offset_y + line_height * (line as f32), 20.0, DARK_GREEN);
+                line += 1;
+                draw_text(&format!("Births: {}   Deaths: {}",
+                                   stats.dark_plant_births, stats.dark_plant_deaths),
+                          offset_x, offset_y + line_height * (line as f32), 20.0, DARK_GREEN);
                 line += 2;
                 draw_text("Herbivores", offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
                 line += 1;
-                draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}", stats.herbivore_births, stats.herbivore_deaths, stats.herbivore_consumptions), offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
+                draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}",
+                                   stats.herbivore_births, stats.herbivore_deaths, stats.herbivore_consumptions),
+                          offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
                 line += 2;
                 draw_text("Carnivores", offset_x, offset_y + line_height * (line as f32), 20.0, RED);
                 line += 1;
-                draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}", stats.carnivore_births, stats.carnivore_deaths, stats.carnivore_consumptions), offset_x, offset_y + line_height * (line as f32), 20.0, RED);
+                draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}",
+                                   stats.carnivore_births, stats.carnivore_deaths, stats.carnivore_consumptions),
+                          offset_x, offset_y + line_height * (line as f32), 20.0, RED);
                 line += 2;
                 draw_text("Omnivores", offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
                 line += 1;
-                draw_text(&format!("Births: {}   Deaths: {}   Consumptions (Plants): {}   Consumptions (Herbivores): {}", stats.omnivore_births, stats.omnivore_deaths, stats.omnivore_consumptions_plants, stats.omnivore_consumptions_herbivores), offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
+                draw_text(&format!("Births: {}   Deaths: {}   Consumptions (Plants): {}   Consumptions (Herbivores): {}",
+                                   stats.omnivore_births, stats.omnivore_deaths,
+                                   stats.omnivore_consumptions_plants, stats.omnivore_consumptions_herbivores),
+                          offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
                 line += 2;
                 draw_text("Lakes", offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
                 line += 1;
-                draw_text(&format!("Appearances: {}   Disappearances: {}", stats.water_births, stats.water_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
+                draw_text(&format!("Appearances: {}   Disappearances: {}",
+                                   stats.water_births / 9, stats.water_deaths / 9),
+                          offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
                 line += 2;
                 draw_text("Trees", offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
                 line += 1;
-                draw_text(&format!("Appearances: {}   Disappearances: {}", stats.tree_births, stats.tree_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
+                draw_text(&format!("Appearances: {}   Disappearances: {}",
+                                   stats.tree_births / 4, stats.tree_deaths / 4),
+                          offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
                 line += 4;
                 draw_text("Press Esc Again to Quit", offset_x, offset_y + line_height * (line as f32), 20.0, WHITE);
                 if is_key_pressed(KeyCode::Escape) {
