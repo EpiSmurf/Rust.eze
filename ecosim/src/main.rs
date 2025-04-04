@@ -1,4 +1,3 @@
-// main.rs
 use macroquad::prelude::*;
 use crate::config::{SimulationConfig, AgentType, Agent};
 use crate::ecosystem::{Ecosystem, SimulationStats};
@@ -14,7 +13,7 @@ const BROWN: Color = Color::new(0.4, 0.2, 0.0, 1.0);
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "EcoSim".to_owned(),
+        window_title: "Rust.eze".to_owned(),
         window_width: 1920,
         window_height: 1080,
         fullscreen: true,
@@ -63,7 +62,6 @@ impl TrackingInfo {
             died: None,
         }
     }
-
     fn overwrite(&mut self, agent: &Agent) {
         self.x = agent.x;
         self.y = agent.y;
@@ -74,7 +72,6 @@ impl TrackingInfo {
             self.died = None;
         }
     }
-
     fn mark_death(&mut self, cause: &str) {
         self.died = Some(cause.to_string());
     }
@@ -176,21 +173,53 @@ async fn main() {
             AppState::ConfigMenu => {
                 let start_x = offset_x;
                 let mut y = offset_y;
+                y += 20.0;
+                draw_text("Rust.eze", start_x, y, 50.0, VIOLET);
+                y += 60.0;
+                draw_text("Contributors:", start_x, y, 30.0, YELLOW);
+                y += 40.0;
+                draw_text("Guillaume DUFOUR", start_x, y, 20.0, WHITE);
+                y += 25.0;
+                draw_text("Lucas BONDARENKO", start_x, y, 20.0, WHITE);
+                y += 25.0;
+                draw_text("Philippe RASTOUL", start_x, y, 20.0, WHITE);
+                y += 25.0;
+                draw_text("Amir-Alexandre BARKALLAH", start_x, y, 20.0, WHITE);
+                y += 60.0;
                 for (i, field) in fields.iter().enumerate() {
-                    let color = if i == selected_field { YELLOW } else { WHITE };
-                    draw_text(&format!("{}: {}", field.label, field.display_value()), start_x, y, 20.0, color);
+                    let color = if i == selected_field {
+                        YELLOW
+                    } else {
+                        match field.label.as_str() {
+                            "Initial Carnivores" => RED,
+                            "Initial Herbivores" => PINK,
+                            "Initial Omnivores" => ORANGE,
+                            "Initial Dark Plants" => DARK_GREEN,
+                            "Initial Light Plants" => GREEN,
+                            "Water Spawn Chance" => BLUE,
+                            "Tree Spawn Chance" => BROWN,
+                            _ => WHITE,
+                        }
+                    };
+                    draw_text(
+                        &format!("{}: {}", field.label, field.display_value()),
+                        start_x,
+                        y,
+                        20.0,
+                        color,
+                    );
                     y += 30.0;
                 }
                 y += 20.0;
-                draw_text("Up/Down: Switch Field", start_x, y, 20.0, WHITE);
+                draw_text("Up/Down: Switch Field", start_x, y, 20.0, YELLOW);
                 y += 30.0;
-                draw_text("Type Digits or '.' to Modify", start_x, y, 20.0, WHITE);
+                draw_text("Type Digits or '.' to Modify", start_x, y, 20.0, YELLOW);
                 y += 30.0;
-                draw_text("Backspace: Delete", start_x, y, 20.0, WHITE);
+                draw_text("Backspace: Delete", start_x, y, 20.0, YELLOW);
                 y += 30.0;
-                draw_text("Enter: Start Simulation", start_x, y, 20.0, WHITE);
+                draw_text("Enter: Start Simulation", start_x, y, 20.0, YELLOW);
                 y += 30.0;
-                draw_text("Esc: Quit", start_x, y, 20.0, WHITE);
+                draw_text("Esc: Quit", start_x, y, 20.0, YELLOW);
                 if is_key_pressed(KeyCode::Up) && selected_field > 0 {
                     selected_field -= 1;
                 }
@@ -397,37 +426,37 @@ async fn main() {
                 }
             }
             AppState::StatsScreen => {
-                draw_text("Simulation Statistics", offset_x, offset_y + 15 as f32, 30.0, WHITE);
+                draw_text("Simulation Statistics", offset_x, offset_y + 15.0, 30.0, WHITE);
                 let mut line = 1;
                 let line_height = 15.0;
                 line += 4;
                 draw_text(&format!("Step Count: {}", simulation_step), offset_x, offset_y + line_height * (line as f32), 25.0, YELLOW);
                 line += 3;
-                draw_text(&format!("Plants"), offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
+                draw_text("Plants", offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
                 line += 1;
                 draw_text(&format!("Births: {}   Deaths: {}", stats.plant_births, stats.plant_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
                 line += 2;
-                draw_text(&format!("Herbivores"), offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
+                draw_text("Herbivores", offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
                 line += 1;
                 draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}", stats.herbivore_births, stats.herbivore_deaths, stats.herbivore_consumptions), offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
                 line += 2;
-                draw_text(&format!("Carnivores"), offset_x, offset_y + line_height * (line as f32), 20.0, RED);
+                draw_text("Carnivores", offset_x, offset_y + line_height * (line as f32), 20.0, RED);
                 line += 1;
                 draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}", stats.carnivore_births, stats.carnivore_deaths, stats.carnivore_consumptions), offset_x, offset_y + line_height * (line as f32), 20.0, RED);
                 line += 2;
-                draw_text(&format!("Omnivores"), offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
+                draw_text("Omnivores", offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
                 line += 1;
                 draw_text(&format!("Births: {}   Deaths: {}   Consumptions (Plants): {}   Consumptions (Herbivores): {}", stats.omnivore_births, stats.omnivore_deaths, stats.omnivore_consumptions_plants, stats.omnivore_consumptions_herbivores), offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
                 line += 2;
-                draw_text(&format!("Lakes"), offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
+                draw_text("Lakes", offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
                 line += 1;
                 draw_text(&format!("Appearances: {}   Disappearances: {}", stats.water_births, stats.water_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
                 line += 2;
-                draw_text(&format!("Trees"), offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
+                draw_text("Trees", offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
                 line += 1;
                 draw_text(&format!("Appearances: {}   Disappearances: {}", stats.tree_births, stats.tree_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
                 line += 4;
-                draw_text("Press Esc again to quit", offset_x, offset_y + line_height * (line as f32), 20.0, WHITE);
+                draw_text("Press Esc Again to Quit", offset_x, offset_y + line_height * (line as f32), 20.0, WHITE);
                 if is_key_pressed(KeyCode::Escape) {
                     break;
                 }
