@@ -1,3 +1,4 @@
+// config.rs
 #[derive(Clone)]
 pub struct SimulationConfig {
     pub grid_width: usize,
@@ -32,7 +33,7 @@ pub struct SimulationConfig {
 
 impl Default for SimulationConfig {
     fn default() -> Self {
-        SimulationConfig {
+        Self {
             grid_width: 114,
             grid_height: 52,
             initial_light_plants: 150,
@@ -90,7 +91,7 @@ pub struct Agent {
 
 impl Agent {
     pub fn new(id: u32, agent_type: AgentType, x: usize, y: usize, energy: i32) -> Self {
-        Agent {
+        Self {
             id,
             agent_type,
             x,
@@ -103,7 +104,7 @@ impl Agent {
     }
 
     pub fn new_water(id: u32, x: usize, y: usize, birth: usize) -> Self {
-        Agent {
+        Self {
             id,
             agent_type: AgentType::Water,
             x,
@@ -116,7 +117,7 @@ impl Agent {
     }
 
     pub fn new_tree(id: u32, x: usize, y: usize, birth: usize) -> Self {
-        Agent {
+        Self {
             id,
             agent_type: AgentType::Tree,
             x,

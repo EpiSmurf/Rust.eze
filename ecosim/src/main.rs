@@ -1,6 +1,7 @@
+// main.rs
 use macroquad::prelude::*;
 use crate::config::{SimulationConfig, AgentType, Agent};
-use crate::ecosystem::Ecosystem;
+use crate::ecosystem::{Ecosystem, SimulationStats};
 
 mod config;
 mod ecosystem;
@@ -24,6 +25,7 @@ fn window_conf() -> Conf {
 enum AppState {
     ConfigMenu,
     Simulation,
+    StatsScreen,
 }
 
 struct ConfigField {
@@ -78,8 +80,8 @@ impl TrackingInfo {
     }
 }
 
-fn advance_simulation(eco: &mut Ecosystem, track: &mut Option<TrackingInfo>) {
-    eco.step();
+fn advance_simulation(eco: &mut Ecosystem, track: &mut Option<TrackingInfo>, stats: &mut SimulationStats) {
+    eco.step(stats);
     if let Some(t) = track {
         if let Some(agent) = eco.herbivores.iter().find(|h| h.id == t.agent_id)
             .or_else(|| eco.carnivores.iter().find(|c| c.id == t.agent_id))
@@ -167,6 +169,7 @@ async fn main() {
     let mut current_index: usize = 0;
     let mut simulation_step: usize = 0;
     let mut tracking: Option<TrackingInfo> = None;
+    let mut stats: SimulationStats = SimulationStats::default();
     loop {
         clear_background(BLACK);
         match app_state {
@@ -284,7 +287,7 @@ async fn main() {
                         current_index += 1;
                         load_from_history(&history, current_index, &mut ecosystem, &mut tracking, &mut simulation_step);
                     } else if let Some(ref mut eco) = ecosystem {
-                        advance_simulation(eco, &mut tracking);
+                        advance_simulation(eco, &mut tracking, &mut stats);
                         history.push(eco.clone());
                         current_index += 1;
                         simulation_step = current_index;
@@ -292,11 +295,14 @@ async fn main() {
                 }
                 if is_key_down(KeyCode::Space) {
                     if let Some(ref mut eco) = ecosystem {
-                        advance_simulation(eco, &mut tracking);
+                        advance_simulation(eco, &mut tracking, &mut stats);
                         history.push(eco.clone());
                         current_index += 1;
                         simulation_step = current_index;
                     }
+                }
+                if is_key_pressed(KeyCode::Escape) {
+                    app_state = AppState::StatsScreen;
                 }
                 if let Some(ref eco) = ecosystem {
                     for y in 0..eco.height {
@@ -370,8 +376,8 @@ async fn main() {
                 let base_y = offset_y + (grid_height as f32 * cell_size) + 30.0;
                 draw_text("Left/Right: Step Backward/Forward", base_x, base_y, 20.0, WHITE);
                 draw_text("Hold Space: Continuous Update", base_x, base_y + 30.0, 20.0, WHITE);
-                draw_text("Left Click On An Agent To Track It", base_x, base_y + 60.0, 20.0, WHITE);
-                draw_text("Esc: Quit", base_x, base_y + 90.0, 20.0, WHITE);
+                draw_text("Left Click on an Animal to Track it", base_x, base_y + 60.0, 20.0, WHITE);
+                draw_text("Esc: Show Statistics", base_x, base_y + 90.0, 20.0, WHITE);
                 let stats_x = base_x + 550.0;
                 let stats_y = base_y;
                 draw_text(&format!("Step: {}", simulation_step), stats_x, stats_y, 20.0, YELLOW);
@@ -382,13 +388,46 @@ async fn main() {
                 let track_x = stats_x + 500.0;
                 let track_y = base_y;
                 if let Some(t) = &tracking {
-                    draw_text("Tracked Agent Info:", track_x, track_y, 20.0, VIOLET);
+                    draw_text("Tracked Animal Info:", track_x, track_y, 20.0, VIOLET);
                     draw_text(&format!("Born: ({}, {})", t.born_x, t.born_y), track_x, track_y + 30.0, 20.0, WHITE);
                     draw_text(&format!("Position: ({}, {})", t.x, t.y), track_x, track_y + 60.0, 20.0, WHITE);
                     draw_text(&format!("Energy: {}", t.energy), track_x, track_y + 90.0, 20.0, WHITE);
                     let died_text = t.died.as_deref().unwrap_or("Not Yet");
                     draw_text(&format!("Died: {}", died_text), track_x, track_y + 120.0, 20.0, WHITE);
                 }
+            }
+            AppState::StatsScreen => {
+                draw_text("Simulation Statistics", offset_x, offset_y + 15 as f32, 30.0, WHITE);
+                let mut line = 1;
+                let line_height = 15.0;
+                line += 4;
+                draw_text(&format!("Step Count: {}", simulation_step), offset_x, offset_y + line_height * (line as f32), 25.0, YELLOW);
+                line += 3;
+                draw_text(&format!("Plants"), offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
+                line += 1;
+                draw_text(&format!("Births: {}   Deaths: {}", stats.plant_births, stats.plant_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, GREEN);
+                line += 2;
+                draw_text(&format!("Herbivores"), offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
+                line += 1;
+                draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}", stats.herbivore_births, stats.herbivore_deaths, stats.herbivore_consumptions), offset_x, offset_y + line_height * (line as f32), 20.0, PINK);
+                line += 2;
+                draw_text(&format!("Carnivores"), offset_x, offset_y + line_height * (line as f32), 20.0, RED);
+                line += 1;
+                draw_text(&format!("Births: {}   Deaths: {}   Consumptions: {}", stats.carnivore_births, stats.carnivore_deaths, stats.carnivore_consumptions), offset_x, offset_y + line_height * (line as f32), 20.0, RED);
+                line += 2;
+                draw_text(&format!("Omnivores"), offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
+                line += 1;
+                draw_text(&format!("Births: {}   Deaths: {}   Consumptions (Plants): {}   Consumptions (Herbivores): {}", stats.omnivore_births, stats.omnivore_deaths, stats.omnivore_consumptions_plants, stats.omnivore_consumptions_herbivores), offset_x, offset_y + line_height * (line as f32), 20.0, ORANGE);
+                line += 2;
+                draw_text(&format!("Lakes"), offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
+                line += 1;
+                draw_text(&format!("Appearances: {}   Disappearances: {}", stats.water_births, stats.water_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, BLUE);
+                line += 2;
+                draw_text(&format!("Trees"), offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
+                line += 1;
+                draw_text(&format!("Appearances: {}   Disappearances: {}", stats.tree_births, stats.tree_deaths), offset_x, offset_y + line_height * (line as f32), 20.0, BROWN);
+                line += 4;
+                draw_text("Press Esc again to quit", offset_x, offset_y + line_height * (line as f32), 20.0, WHITE);
                 if is_key_pressed(KeyCode::Escape) {
                     break;
                 }

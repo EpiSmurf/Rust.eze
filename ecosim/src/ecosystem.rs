@@ -1,5 +1,26 @@
+// ecosystem.rs
 use crate::config::{SimulationConfig, Agent, AgentType};
 use rand::Rng;
+
+#[derive(Default, Clone)]
+pub struct SimulationStats {
+    pub plant_births: usize,
+    pub herbivore_births: usize,
+    pub carnivore_births: usize,
+    pub omnivore_births: usize,
+    pub water_births: usize,
+    pub tree_births: usize,
+    pub plant_deaths: usize,
+    pub herbivore_deaths: usize,
+    pub carnivore_deaths: usize,
+    pub omnivore_deaths: usize,
+    pub water_deaths: usize,
+    pub tree_deaths: usize,
+    pub herbivore_consumptions: usize,
+    pub carnivore_consumptions: usize,
+    pub omnivore_consumptions_plants: usize,
+    pub omnivore_consumptions_herbivores: usize,
+}
 
 #[derive(Clone)]
 pub struct Ecosystem {
@@ -81,7 +102,7 @@ impl Ecosystem {
         (new_x, new_y)
     }
 
-    fn maybe_spawn_water(&mut self) {
+    fn maybe_spawn_water(&mut self, stats: &mut SimulationStats) {
         let mut rng = rand::thread_rng();
         if rng.gen::<f32>() < self.config.water_spawn_chance {
             let x = rng.gen_range(1..(self.width - 1));
@@ -98,13 +119,15 @@ impl Ecosystem {
                     let water = Agent::new_water(self.next_agent_id, wx, wy, self.iteration_count);
                     self.next_agent_id += 1;
                     self.waters.push(water);
+                    stats.water_births += 1;
                 }
             }
         }
     }
 
-    fn evaporate_water(&mut self) {
+    fn evaporate_water(&mut self, stats: &mut SimulationStats) {
         let current_it = self.iteration_count;
+        let before = self.waters.len();
         self.waters.retain(|w| {
             if let Some(birth) = w.birth_iteration {
                 (current_it - birth) < self.config.water_lifespan
@@ -112,9 +135,11 @@ impl Ecosystem {
                 true
             }
         });
+        let after = self.waters.len();
+        stats.water_deaths += before - after;
     }
 
-    fn handle_water_influence(&mut self) {
+    fn handle_water_influence(&mut self, stats: &mut SimulationStats) {
         let mut rng = rand::thread_rng();
         for w in &self.waters {
             let w_x = w.x as i32;
@@ -128,7 +153,10 @@ impl Ecosystem {
                     }
                     let ux = nx as usize;
                     let uy = ny as usize;
+                    let before = self.plants.len();
                     self.plants.retain(|p| !(p.x == ux && p.y == uy && p.agent_type == AgentType::DarkPlant));
+                    let after = self.plants.len();
+                    stats.plant_deaths += before - after;
                     if rng.gen::<f32>() < (self.config.plant_growth_rate * 3.0) {
                         let no_plant = !self.plants.iter().any(|p| p.x == ux && p.y == uy);
                         let no_water = !self.waters.iter().any(|wa| wa.x == ux && wa.y == uy);
@@ -136,6 +164,7 @@ impl Ecosystem {
                             let new_l = Agent::new(self.next_agent_id, AgentType::LightPlant, ux, uy, 0);
                             self.next_agent_id += 1;
                             self.plants.push(new_l);
+                            stats.plant_births += 1;
                         }
                     }
                 }
@@ -143,7 +172,7 @@ impl Ecosystem {
         }
     }
 
-    fn maybe_spawn_tree(&mut self) {
+    fn maybe_spawn_tree(&mut self, stats: &mut SimulationStats) {
         let mut rng = rand::thread_rng();
         if rng.gen::<f32>() < self.config.tree_spawn_chance {
             let x = rng.gen_range(0..(self.width - 1));
@@ -160,13 +189,15 @@ impl Ecosystem {
                     let tree = Agent::new_tree(self.next_agent_id, tx, ty, self.iteration_count);
                     self.next_agent_id += 1;
                     self.trees.push(tree);
+                    stats.tree_births += 1;
                 }
             }
         }
     }
 
-    fn evaporate_trees(&mut self) {
+    fn evaporate_trees(&mut self, stats: &mut SimulationStats) {
         let current_it = self.iteration_count;
+        let before = self.trees.len();
         self.trees.retain(|t| {
             if let Some(birth) = t.birth_iteration {
                 (current_it - birth) < self.config.tree_lifespan
@@ -174,9 +205,11 @@ impl Ecosystem {
                 true
             }
         });
+        let after = self.trees.len();
+        stats.tree_deaths += before - after;
     }
 
-    fn handle_tree_influence(&mut self) {
+    fn handle_tree_influence(&mut self, stats: &mut SimulationStats) {
         let mut rng = rand::thread_rng();
         for t in &self.trees {
             let t_x = t.x as i32;
@@ -190,7 +223,10 @@ impl Ecosystem {
                     }
                     let ux = nx as usize;
                     let uy = ny as usize;
+                    let before = self.plants.len();
                     self.plants.retain(|p| !(p.x == ux && p.y == uy && p.agent_type == AgentType::LightPlant));
+                    let after = self.plants.len();
+                    stats.plant_deaths += before - after;
                     if rng.gen::<f32>() < 0.5 {
                         let no_plant = !self.plants.iter().any(|p| p.x == ux && p.y == uy);
                         let no_water = !self.waters.iter().any(|w| w.x == ux && w.y == uy);
@@ -199,6 +235,7 @@ impl Ecosystem {
                             let dplant = Agent::new(self.next_agent_id, AgentType::DarkPlant, ux, uy, 0);
                             self.next_agent_id += 1;
                             self.plants.push(dplant);
+                            stats.plant_births += 1;
                         }
                     }
                 }
@@ -206,16 +243,15 @@ impl Ecosystem {
         }
     }
 
-    pub fn step(&mut self) {
+    pub fn step(&mut self, stats: &mut SimulationStats) {
         self.iteration_count += 1;
-        self.maybe_spawn_water();
-        self.evaporate_water();
-        self.handle_water_influence();
-        self.maybe_spawn_tree();
-        self.evaporate_trees();
-        self.handle_tree_influence();
+        self.maybe_spawn_water(stats);
+        self.evaporate_water(stats);
+        self.handle_water_influence(stats);
+        self.maybe_spawn_tree(stats);
+        self.evaporate_trees(stats);
+        self.handle_tree_influence(stats);
         let mut rng = rand::thread_rng();
-        let _trees_initial = self.trees.len();
         let plants_snapshot = self.plants.clone();
         let mut new_plants = Vec::new();
         for _plant in &plants_snapshot {
@@ -234,13 +270,9 @@ impl Ecosystem {
                     let old_id = self.plants[existing_index].id;
                     self.plants[existing_index] = Agent::new(old_id, new_type, nx, ny, 0);
                 } else {
-                    let plant_type = if rng.gen::<f32>() < 0.5 {
-                        AgentType::LightPlant
-                    } else {
-                        AgentType::DarkPlant
-                    };
-                    new_plants.push(Agent::new(self.next_agent_id, plant_type, nx, ny, 0));
+                    new_plants.push(Agent::new(self.next_agent_id, if rng.gen::<f32>() < 0.5 { AgentType::LightPlant } else { AgentType::DarkPlant }, nx, ny, 0));
                     self.next_agent_id += 1;
+                    stats.plant_births += 1;
                 }
             }
         }
@@ -263,6 +295,8 @@ impl Ecosystem {
             } else if let Some(index) = self.plants.iter().position(|p| p.x == herbivore.x && p.y == herbivore.y) {
                 self.plants.swap_remove(index);
                 herbivore.energy += self.config.herbivore_energy_gain;
+                stats.herbivore_consumptions += 1;
+                stats.plant_deaths += 1;
             }
             if herbivore.energy >= self.config.herbivore_reproduction_threshold && rng.gen::<f32>() < self.config.herbivore_reproduction_rate {
                 let (ox, oy) = Self::random_adjacent_aux(&mut rng, herbivore.x, herbivore.y, self.width, self.height);
@@ -270,11 +304,13 @@ impl Ecosystem {
                 herbivore.energy -= offspring_energy;
                 new_herbivores.push(Agent::new(self.next_agent_id, AgentType::Herbivore, ox, oy, offspring_energy));
                 self.next_agent_id += 1;
+                stats.herbivore_births += 1;
             }
             if herbivore.energy <= 0 {
                 if !herbivore.pending_death {
                     herbivore.pending_death = true;
                     herbivore.death_cause = Some("Lack of Energy".to_string());
+                    stats.herbivore_deaths += 1;
                     updated_herbivores.push(herbivore);
                 }
             } else {
@@ -307,6 +343,8 @@ impl Ecosystem {
                 prey.death_cause = Some("Eaten by Carnivore".to_string());
                 self.herbivores.push(prey);
                 carnivore.energy += self.config.carnivore_energy_gain;
+                stats.carnivore_consumptions += 1;
+                stats.herbivore_deaths += 1;
             }
             if carnivore.energy >= self.config.carnivore_reproduction_threshold && rng.gen::<f32>() < self.config.carnivore_reproduction_rate {
                 let (ox, oy) = Self::random_adjacent_aux(&mut rng, carnivore.x, carnivore.y, self.width, self.height);
@@ -314,11 +352,13 @@ impl Ecosystem {
                 carnivore.energy -= offspring_energy;
                 new_carnivores.push(Agent::new(self.next_agent_id, AgentType::Carnivore, ox, oy, offspring_energy));
                 self.next_agent_id += 1;
+                stats.carnivore_births += 1;
             }
             if carnivore.energy <= 0 {
                 if !carnivore.pending_death {
                     carnivore.pending_death = true;
                     carnivore.death_cause = Some("Lack of Energy".to_string());
+                    stats.carnivore_deaths += 1;
                     updated_carnivores.push(carnivore);
                 }
             } else {
@@ -352,9 +392,13 @@ impl Ecosystem {
                     prey.death_cause = Some("Eaten by Omnivore".to_string());
                     self.herbivores.push(prey);
                     omnivore.energy += self.config.omnivore_energy_gain_herbivores;
+                    stats.omnivore_consumptions_herbivores += 1;
+                    stats.herbivore_deaths += 1;
                 } else if let Some(index) = self.plants.iter().position(|p| p.x == omnivore.x && p.y == omnivore.y) {
                     self.plants.swap_remove(index);
                     omnivore.energy += self.config.omnivore_energy_gain_plants;
+                    stats.omnivore_consumptions_plants += 1;
+                    stats.plant_deaths += 1;
                 }
                 if omnivore.energy >= self.config.omnivore_reproduction_threshold && rng.gen::<f32>() < self.config.omnivore_reproduction_rate {
                     let (ox, oy) = Self::random_adjacent_aux(&mut rng, omnivore.x, omnivore.y, self.width, self.height);
@@ -362,12 +406,14 @@ impl Ecosystem {
                     omnivore.energy -= offspring_energy;
                     new_omnivores.push(Agent::new(self.next_agent_id, AgentType::Omnivore, ox, oy, offspring_energy));
                     self.next_agent_id += 1;
+                    stats.omnivore_births += 1;
                 }
             }
             if omnivore.energy <= 0 {
                 if !omnivore.pending_death {
                     omnivore.pending_death = true;
                     omnivore.death_cause = Some("Lack of Energy".to_string());
+                    stats.omnivore_deaths += 1;
                     updated_omnivores.push(omnivore);
                 }
             } else {
@@ -378,6 +424,7 @@ impl Ecosystem {
         }
         updated_omnivores.extend(new_omnivores);
         self.omnivores = updated_omnivores;
+        let before_trees = self.trees.len();
         let mut trees_died_count = 0;
         self.trees.retain(|t| {
             if let Some(birth) = t.birth_iteration {
@@ -391,5 +438,7 @@ impl Ecosystem {
                 true
             }
         });
+        let after_trees = self.trees.len();
+        stats.tree_deaths += before_trees - after_trees;
     }
 }
