@@ -42,7 +42,7 @@ impl Default for SimulationConfig {
             herbivore_energy_loss: 1,
             herbivore_initial_energy: 30,
             herbivore_reproduction_threshold: 15,
-            carnivore_energy_gain: 20,
+            carnivore_energy_gain: 10,
             carnivore_energy_loss: 1,
             carnivore_initial_energy: 120,
             carnivore_reproduction_threshold: 20,
