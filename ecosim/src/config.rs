@@ -30,7 +30,7 @@ pub struct SimulationConfig {
 impl Default for SimulationConfig {
     fn default() -> Self {
         Self {
-            grid_width: 114,
+            grid_width: 57,
             grid_height: 52,
             initial_light_plants: 150,
             initial_dark_plants: 75,
