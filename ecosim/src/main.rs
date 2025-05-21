@@ -1,5 +1,4 @@
 use macroquad::prelude::*;
-
 use crate::config::{SimulationConfig, AgentType};
 use crate::ecosystem::{Ecosystem, SimulationStats};
 
@@ -51,7 +50,6 @@ impl SimulationInstance {
         let ecosystem = Ecosystem::new_custom(config);
         let mut history = Vec::new();
         history.push(ecosystem.clone());
-
         Self {
             ecosystem,
             history,
@@ -82,11 +80,10 @@ impl SimulationInstance {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut app_state = AppState::SimulationSelector;
-    let cell_size: f32 = 12.5;
+    let mut cell_size: f32 = 12.5;
     let offset_x: f32 = 100.0;
     let offset_y: f32 = 50.0;
-
-    let mut num_simulations = 2;
+    let mut num_simulations = 1;
     let mut current_config_index = 0;
     let mut selected_field_index = 0;
     let mut configs: Vec<Vec<ConfigField>> = Vec::new();
@@ -113,78 +110,102 @@ async fn main() {
                 draw_text("Rust.eze", center_x - 100.0, title_y + 55.0, 60.0, VIOLET);
 
                 let options_width = 500.0;
-                let options_height = 300.0;
+                let options_height = 370.0;
                 let options_x = center_x - options_width / 2.0;
                 let options_y = start_y;
 
                 draw_rectangle(options_x, options_y, options_width, options_height, Color::new(0.1, 0.1, 0.1, 0.8));
                 draw_rectangle_lines(options_x, options_y, options_width, options_height, 2.0, WHITE);
-
                 draw_text("Select number of simulations", center_x - 180.0, options_y + 40.0, 30.0, WHITE);
 
+                let one_sim_color = if num_simulations == 1 { GREEN } else { WHITE };
                 let two_sim_color = if num_simulations == 2 { GREEN } else { WHITE };
                 let four_sim_color = if num_simulations == 4 { GREEN } else { WHITE };
-
+                
                 let option_y = options_y + 100.0;
                 let option_height = 50.0;
                 let option_width = 300.0;
                 let option_x = center_x - option_width / 2.0;
 
-                if num_simulations == 2 {
+                if num_simulations == 1 {
                     draw_rectangle(option_x, option_y, option_width, option_height, Color::new(0.0, 0.5, 0.0, 0.3));
                 }
-                draw_rectangle_lines(option_x, option_y, option_width, option_height, 1.0, two_sim_color);
-                draw_text("2 Simulations", center_x - 80.0, option_y + 35.0, 25.0, two_sim_color);
+                draw_rectangle_lines(option_x, option_y, option_width, option_height, 1.0, one_sim_color);
+                draw_text("1 Simulation", center_x - 75.0, option_y + 35.0, 25.0, one_sim_color);
 
-                if num_simulations == 4 {
+                if num_simulations == 2 {
                     draw_rectangle(option_x, option_y + 70.0, option_width, option_height, Color::new(0.0, 0.5, 0.0, 0.3));
                 }
-                draw_rectangle_lines(option_x, option_y + 70.0, option_width, option_height, 1.0, four_sim_color);
-                draw_text("4 Simulations", center_x - 80.0, option_y + 105.0, 25.0, four_sim_color);
+                draw_rectangle_lines(option_x, option_y + 70.0, option_width, option_height, 1.0, two_sim_color);
+                draw_text("2 Simulations", center_x - 80.0, option_y + 105.0, 25.0, two_sim_color);
+
+                if num_simulations == 4 {
+                    draw_rectangle(option_x, option_y + 140.0, option_width, option_height, Color::new(0.0, 0.5, 0.0, 0.3));
+                }
+                draw_rectangle_lines(option_x, option_y + 140.0, option_width, option_height, 1.0, four_sim_color);
+                draw_text("4 Simulations", center_x - 80.0, option_y + 175.0, 25.0, four_sim_color);
 
                 let instructions_y = options_y + options_height + 30.0;
                 draw_text("Up/Down: Select Option", center_x - 120.0, instructions_y, 20.0, WHITE);
                 draw_text("Enter: Continue to Configuration", center_x - 160.0, instructions_y + 30.0, 20.0, WHITE);
                 draw_text("Esc: Quit", center_x - 50.0, instructions_y + 60.0, 20.0, WHITE);
 
-                if is_key_pressed(KeyCode::Up) && num_simulations == 4 {
-                    num_simulations = 2;
+                if is_key_pressed(KeyCode::Up) {
+                    match num_simulations {
+                        2 => num_simulations = 1,
+                        4 => num_simulations = 2,
+                        _ => {}
+                    }
                 }
 
-                if is_key_pressed(KeyCode::Down) && num_simulations == 2 {
-                    num_simulations = 4;
+                if is_key_pressed(KeyCode::Down) {
+                    match num_simulations {
+                        1 => num_simulations = 2,
+                        2 => num_simulations = 4,
+                        _ => {}
+                    }
                 }
 
                 if is_key_pressed(KeyCode::Enter) {
+                    cell_size = match num_simulations {
+                        1 => 12.5,
+                        2 => 12.5 * 0.75, // Réduction d'un quart
+                        4 => 12.5 * 0.66, // Réduction d'un tiers
+                        _ => 12.5,
+                    };
+                    
                     configs.clear();
-
+                    
                     let default_configs = match num_simulations {
+                        1 => vec![
+                            SimulationConfig::default(),
+                        ],
                         2 => vec![
                             SimulationConfig::default(),
                             {
                                 let mut config = SimulationConfig::default();
                                 config.initial_carnivores = 0;
                                 config
-                            }, 
+                            },
                         ],
                         4 => vec![
-                            SimulationConfig::default(), 
+                            SimulationConfig::default(),
                             {
                                 let mut config = SimulationConfig::default();
                                 config.initial_omnivores = 0;
                                 config
-                            }, 
+                            },
                             {
                                 let mut config = SimulationConfig::default();
                                 config.initial_carnivores = 0;
                                 config
-                            }, 
+                            },
                             {
                                 let mut config = SimulationConfig::default();
                                 config.water_spawn_chance = 0.0;
                                 config.tree_spawn_chance = 0.0;
                                 config
-                            }, 
+                            },
                         ],
                         _ => vec![SimulationConfig::default()],
                     };
@@ -234,7 +255,6 @@ async fn main() {
                                 color: BROWN,
                             },
                         ];
-
                         configs.push(fields);
                     }
 
@@ -247,24 +267,21 @@ async fn main() {
                     break;
                 }
             },
-
             AppState::ConfigMenu => {
                 let start_x = offset_x;
                 let mut y = offset_y;
-
+                
                 y += 30.0;
                 draw_text("Rust.eze", start_x, y, 50.0, VIOLET);
                 y += 60.0;
-
+                
                 draw_text(&format!("Configuration for Simulation {}", current_config_index + 1), start_x, y, 30.0, YELLOW);
                 y += 40.0;
-
+                
                 let fields = &mut configs[current_config_index];
-
                 for (i, field) in fields.iter().enumerate() {
                     let font_size = if i == selected_field_index { 22.5 } else { 20.0 };
                     let color = if i == selected_field_index { WHITE } else { field.color };
-
                     draw_text(
                         &format!("{}: {}", field.label, field.display_value()),
                         start_x,
@@ -274,7 +291,7 @@ async fn main() {
                     );
                     y += 30.0;
                 }
-
+                
                 y += 30.0;
                 draw_text("Up/Down: Switch Field", start_x, y, 20.0, WHITE);
                 y += 30.0;
@@ -282,65 +299,65 @@ async fn main() {
                 y += 30.0;
                 draw_text("Backspace: Delete", start_x, y, 20.0, WHITE);
                 y += 30.0;
-
+                
                 if current_config_index < num_simulations - 1 {
                     draw_text("Right Arrow: Next Simulation", start_x, y, 20.0, WHITE);
                     y += 30.0;
                 }
-
+                
                 if current_config_index > 0 {
                     draw_text("Left Arrow: Previous Simulation", start_x, y, 20.0, WHITE);
                     y += 30.0;
                 }
-
+                
                 draw_text("Enter: Start Simulations", start_x, y, 20.0, WHITE);
                 y += 30.0;
                 draw_text("Esc: Back to Selector", start_x, y, 20.0, WHITE);
-
+                
                 if is_key_pressed(KeyCode::Up) && selected_field_index > 0 {
                     selected_field_index -= 1;
                 }
-
+                
                 if is_key_pressed(KeyCode::Down) && selected_field_index < fields.len() - 1 {
                     selected_field_index += 1;
                 }
-
+                
                 let field = &mut fields[selected_field_index];
                 if let Some(ch) = get_char_pressed() {
                     if ch.is_ascii_digit() || (ch == '.' && !field.is_int && !field.input.contains('.')) {
                         field.input.push(ch);
                     }
                 }
-
+                
                 if is_key_pressed(KeyCode::Backspace) {
                     field.input.pop();
                 }
-
+                
                 if is_key_pressed(KeyCode::Right) && current_config_index < num_simulations - 1 {
                     current_config_index += 1;
                     selected_field_index = 0;
                 }
-
+                
                 if is_key_pressed(KeyCode::Left) && current_config_index > 0 {
                     current_config_index -= 1;
                     selected_field_index = 0;
                 }
-
+                
                 if is_key_pressed(KeyCode::Enter) {
                     simulations.clear();
-
+                    
                     let screen_width = screen_width();
                     let horizontal_spacing = (screen_width - 2.0 * offset_x) / 2.0;
                     let grid_width = (horizontal_spacing - 50.0) / cell_size;
-
+                    
                     let (grid_width, grid_height) = match num_simulations {
-                        2 => (grid_width as usize, 52),
-                        4 => (grid_width as usize, 26),
+                        1 => (grid_width as usize * 2, ((52.0 * 12.5) / cell_size) as usize),
+                        2 => (grid_width as usize, ((52.0 * 12.5) / cell_size) as usize),
+                        4 => (grid_width as usize, ((26.0 * 12.5) / cell_size) as usize),
                         _ => (grid_width as usize, 52),
                     };
-
+                    
                     let default_config = SimulationConfig::default();
-
                     for sim_config_fields in &configs {
                         let config = SimulationConfig {
                             grid_width,
@@ -369,45 +386,47 @@ async fn main() {
                             omnivore_initial_energy: default_config.omnivore_initial_energy,
                             omnivore_reproduction_threshold: default_config.omnivore_reproduction_threshold,
                         };
-
                         simulations.push(SimulationInstance::new(config));
                     }
-
+                    
                     all_selected = true;
                     app_state = AppState::Simulation;
                 }
-
+                
                 if is_key_pressed(KeyCode::Escape) {
                     app_state = AppState::SimulationSelector;
                 }
             },
-
             AppState::Simulation => {
                 let screen_width = screen_width();
                 let screen_height = screen_height();
                 let horizontal_spacing = (screen_width - 2.0 * offset_x) / 2.0;
-
+                
                 let grid_positions = match num_simulations {
+                    1 => {
+                        let grid_width_pixels = simulations[0].ecosystem.width as f32 * cell_size;
+                        vec![
+                            ((screen_width - grid_width_pixels) / 2.0, offset_y)
+                        ]
+                    },
                     2 => vec![
                         (offset_x, offset_y),
                         (offset_x + horizontal_spacing, offset_y),
                     ],
                     4 => {
-
                         let grid_height = simulations[0].ecosystem.height as f32 * cell_size;
-                        let stats_height = 40.0; 
-                        let total_height = grid_height + stats_height + 20.0; 
-
+                        let stats_height = 40.0;
+                        let total_height = grid_height + stats_height + 20.0;
                         vec![
                             (offset_x, offset_y),
                             (offset_x + horizontal_spacing, offset_y),
-                            (offset_x, offset_y + total_height + 20.0), 
+                            (offset_x, offset_y + total_height + 20.0),
                             (offset_x + horizontal_spacing, offset_y + total_height + 20.0),
                         ]
                     },
                     _ => vec![(offset_x, offset_y)],
                 };
-
+                
                 if is_key_pressed(KeyCode::Tab) {
                     if all_selected {
                         all_selected = false;
@@ -420,7 +439,6 @@ async fn main() {
                     } else {
                         let current_index = simulations.iter().position(|s| s.selected).unwrap_or(0);
                         simulations[current_index].selected = false;
-
                         let next_index = (current_index + 1) % simulations.len();
                         if next_index == 0 {
                             all_selected = true;
@@ -432,7 +450,7 @@ async fn main() {
                         }
                     }
                 }
-
+                
                 if is_key_pressed(KeyCode::Right) {
                     for sim in &mut simulations {
                         if sim.selected || all_selected {
@@ -440,7 +458,7 @@ async fn main() {
                         }
                     }
                 }
-
+                
                 if is_key_pressed(KeyCode::Left) {
                     for sim in &mut simulations {
                         if sim.selected || all_selected {
@@ -448,7 +466,7 @@ async fn main() {
                         }
                     }
                 }
-
+                
                 if is_key_down(KeyCode::Space) {
                     for sim in &mut simulations {
                         if sim.selected || all_selected {
@@ -456,31 +474,31 @@ async fn main() {
                         }
                     }
                 }
-
+                
                 if is_key_pressed(KeyCode::Escape) {
                     app_state = AppState::StatsScreen;
                 }
-
+                
                 for (idx, sim) in simulations.iter().enumerate() {
                     let (grid_x, grid_y) = grid_positions[idx];
                     let eco = &sim.ecosystem;
-
+                    
                     let border_color = if sim.selected && !all_selected { VIOLET } else { WHITE };
                     let border_thickness = if sim.selected && !all_selected { 3.0 } else { 1.0 };
-
+                    
                     draw_rectangle_lines(
-                        grid_x - 5.0, 
-                        grid_y - 5.0, 
-                        eco.width as f32 * cell_size + 10.0, 
-                        eco.height as f32 * cell_size + 10.0, 
-                        border_thickness, 
+                        grid_x - 5.0,
+                        grid_y - 5.0,
+                        eco.width as f32 * cell_size + 10.0,
+                        eco.height as f32 * cell_size + 10.0,
+                        border_thickness,
                         border_color
                     );
-
+                    
                     for y in 0..eco.height {
                         for x in 0..eco.width {
                             let mut color = LIGHTGRAY;
-
+                            
                             if eco.trees.iter().any(|t| t.x == x && t.y == y) {
                                 color = BROWN;
                             } else if eco.waters.iter().any(|w| w.x == x && w.y == y) {
@@ -498,109 +516,108 @@ async fn main() {
                                     color = GREEN;
                                 }
                             }
-
+                            
                             draw_rectangle(
-                                grid_x + x as f32 * cell_size, 
-                                grid_y + y as f32 * cell_size, 
-                                cell_size - 1.0, 
-                                cell_size - 1.0, 
+                                grid_x + x as f32 * cell_size,
+                                grid_y + y as f32 * cell_size,
+                                cell_size - 1.0,
+                                cell_size - 1.0,
                                 color
                             );
                         }
                     }
-
+                    
                     let stats_x = grid_x;
                     let stats_y = grid_y + (eco.height as f32 * cell_size) + 18.0;
-
+                    
                     draw_text(&format!("Sim {}: Iteration {}", idx + 1, sim.iteration_count()), stats_x, stats_y, 18.0, YELLOW);
-
+                    
                     let total_light_plants = eco.plants.iter().filter(|p| p.agent_type == AgentType::LightPlant).count();
                     let total_dark_plants = eco.plants.iter().filter(|p| p.agent_type == AgentType::DarkPlant).count();
-
+                    
                     draw_text(&format!("Light Plants: {}", total_light_plants), stats_x, stats_y + 16.0, 15.0, GREEN);
                     draw_text(&format!("Dark Plants: {}", total_dark_plants), stats_x + 140.0, stats_y + 16.0, 15.0, DARK_GREEN);
                     draw_text(&format!("Herbivores: {}", eco.herbivores.len()), stats_x + 270.0, stats_y + 16.0, 15.0, PINK);
                     draw_text(&format!("Carnivores: {}", eco.carnivores.len()), stats_x + 390.0, stats_y + 16.0, 15.0, RED);
                     draw_text(&format!("Omnivores: {}", eco.omnivores.len()), stats_x + 510.0, stats_y + 16.0, 15.0, ORANGE);
                 }
-
+                
                 let control_y = screen_height - 20.0;
-
                 draw_text("Space: Continuous Update | Left/Right: Previous/Next Frame | Tab: Cycle Selection | Esc: Statistics", 
                           offset_x, control_y, 18.0, WHITE);
             },
-
             AppState::StatsScreen => {
                 draw_text("Simulation Statistics", offset_x, offset_y + 15.0, 30.0, WHITE);
-
+                
                 let column_width = 450.0;
+                
                 let num_rows = if num_simulations <= 2 { 1 } else { 2 };
-
+                
                 for idx in 0..simulations.len() {
                     let row = idx / 2;
                     let col = idx % 2;
-
+                    
                     let x_pos = offset_x + (col as f32) * column_width;
                     let y_pos = offset_y + 60.0 + (row as f32) * 350.0;
-
+                    
                     let sim = &simulations[idx];
+                    
                     draw_text(&format!("Simulation {}", idx + 1), x_pos, y_pos, 25.0, YELLOW);
-
+                    
                     let mut line_y = y_pos + 30.0;
-
                     draw_text(&format!("Iteration Count: {}", sim.iteration_count()), x_pos, line_y, 20.0, WHITE);
                     line_y += 25.0;
-
+                    
                     let stats = &sim.stats;
-
+                    
                     draw_text("Light Plants", x_pos, line_y, 20.0, GREEN);
                     line_y += 20.0;
-                    draw_text(&format!("Births: {} Deaths: {}", stats.light_plant_births, stats.light_plant_deaths), 
-                              x_pos, line_y, 18.0, GREEN);
+                    draw_text(&format!("Births: {} Deaths: {}", stats.light_plant_births, stats.light_plant_deaths),
+                               x_pos, line_y, 18.0, GREEN);
                     line_y += 25.0;
-
+                    
                     draw_text("Dark Plants", x_pos, line_y, 20.0, DARK_GREEN);
                     line_y += 20.0;
-                    draw_text(&format!("Births: {} Deaths: {}", stats.dark_plant_births, stats.dark_plant_deaths), 
-                              x_pos, line_y, 18.0, DARK_GREEN);
+                    draw_text(&format!("Births: {} Deaths: {}", stats.dark_plant_births, stats.dark_plant_deaths),
+                               x_pos, line_y, 18.0, DARK_GREEN);
                     line_y += 25.0;
-
+                    
                     draw_text("Herbivores", x_pos, line_y, 20.0, PINK);
                     line_y += 20.0;
-                    draw_text(&format!("Births: {} Deaths: {} Consumptions: {}", 
-                                      stats.herbivore_births, stats.herbivore_deaths, stats.herbivore_consumptions), 
-                              x_pos, line_y, 18.0, PINK);
+                    draw_text(&format!("Births: {} Deaths: {} Consumptions: {}",
+                                     stats.herbivore_births, stats.herbivore_deaths, stats.herbivore_consumptions),
+                               x_pos, line_y, 18.0, PINK);
                     line_y += 25.0;
-
+                    
                     draw_text("Carnivores", x_pos, line_y, 20.0, RED);
                     line_y += 20.0;
-                    draw_text(&format!("Births: {} Deaths: {} Consumptions: {}", 
-                                      stats.carnivore_births, stats.carnivore_deaths, stats.carnivore_consumptions), 
-                              x_pos, line_y, 18.0, RED);
+                    draw_text(&format!("Births: {} Deaths: {} Consumptions: {}",
+                                     stats.carnivore_births, stats.carnivore_deaths, stats.carnivore_consumptions),
+                               x_pos, line_y, 18.0, RED);
                     line_y += 25.0;
-
+                    
                     draw_text("Omnivores", x_pos, line_y, 20.0, ORANGE);
                     line_y += 20.0;
-                    draw_text(&format!("Births: {} Deaths: {} P: {} H: {}", 
-                                      stats.omnivore_births, stats.omnivore_deaths,
-                                      stats.omnivore_consumptions_plants, stats.omnivore_consumptions_herbivores), 
-                              x_pos, line_y, 18.0, ORANGE);
+                    draw_text(&format!("Births: {} Deaths: {} P: {} H: {}",
+                                     stats.omnivore_births, stats.omnivore_deaths, 
+                                     stats.omnivore_consumptions_plants, stats.omnivore_consumptions_herbivores),
+                               x_pos, line_y, 18.0, ORANGE);
                 }
-
+                
                 let instructions_y = offset_y + 40.0 + (num_rows as f32) * 350.0 + 20.0;
                 draw_text("Press Esc to Return to Simulations", offset_x, instructions_y, 20.0, WHITE);
                 draw_text("Press X to Quit", offset_x, instructions_y + 30.0, 20.0, WHITE);
-
+                
                 if is_key_pressed(KeyCode::Escape) {
                     app_state = AppState::Simulation;
                 }
-
+                
                 if is_key_pressed(KeyCode::X) {
                     break;
                 }
             },
         }
-
+        
         next_frame().await;
     }
 }
